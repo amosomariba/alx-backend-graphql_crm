@@ -6,6 +6,8 @@ from .models import Customer, Product, Order
 from .types import CustomerType, ProductType, OrderType
 from django.utils import timezone
 from django.core.exceptions import ObjectDoesNotExist
+from graphene_django import DjangoObjectType
+
 
 class CreateCustomer(graphene.Mutation):
     class Arguments:
@@ -107,6 +109,11 @@ class Query(graphene.ObjectType):
     
     def resolve_all_customers(root, info):
         return Customer.objects.all()
+    
+class CustomerType(DjangoObjectType):
+    class Meta:
+        model = Customer
+        fields = ("id", "name", "email", "phone")
 
 
 class Mutation(graphene.ObjectType):
