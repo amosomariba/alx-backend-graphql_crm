@@ -1,4 +1,5 @@
 import graphene
+from crm.schema import Query
 
 # class Query(graphene.ObjectType):
 #     hello = graphene.String()
