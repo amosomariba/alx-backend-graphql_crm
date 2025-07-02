@@ -101,6 +101,13 @@ class CreateOrder(graphene.Mutation):
         order.save()
         order.products.set(products)
         return CreateOrder(order=order)
+    
+class Query(graphene.ObjectType):
+    all_customers = graphene.List(CustomerType)
+    
+    def resolve_all_customers(root, info):
+        return Customer.objects.all()
+
 
 class Mutation(graphene.ObjectType):
     create_customer = CreateCustomer.Field()

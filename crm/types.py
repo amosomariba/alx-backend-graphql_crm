@@ -5,6 +5,8 @@ from .models import Customer, Product, Order
 class CustomerType(DjangoObjectType):
     class Meta:
         model = Customer
+        fields = ("id", "name", "email", "phone")
+
 
 class ProductType(DjangoObjectType):
     class Meta:
