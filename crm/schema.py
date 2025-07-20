@@ -30,3 +30,10 @@ class UpdateLowStockProducts(graphene.Mutation):
 
 class Mutation(graphene.ObjectType):
     update_low_stock_products = UpdateLowStockProducts.Field()
+
+import graphene
+
+class Query(graphene.ObjectType):
+    hello = graphene.String(default_value="Hello from CRM!")
+
+schema = graphene.Schema(query=Query)
