@@ -1,52 +1,47 @@
-import datetime
-from pathlib import Path
-from gql import gql, Client
+from datetime import datetime
+import requests
 from gql.transport.requests import RequestsHTTPTransport
-
-
-def log_crm_heartbeat():
-    log_path = Path("/tmp/crm_heartbeat_log.txt")
-    timestamp = datetime.datetime.now().strftime("%d/%m/%Y-%H:%M:%S")
-
-    # Optional: Ping the GraphQL hello query
-    try:
-        transport = RequestsHTTPTransport(
-            url="http://localhost:8000/graphql",
-            verify=False,
-            retries=3,
-        )
-        client = Client(transport=transport, fetch_schema_from_transport=True)
-        query = gql("""query { hello }""")
-        response = client.execute(query)
-        message = response.get("hello", "GraphQL unreachable")
-    except Exception:
-        message = "GraphQL unreachable"
-
-    with log_path.open("a") as log:
-        log.write(f"{timestamp} CRM is alive - {message}\n")
-
+from gql import gql, Client
 
 def update_low_stock():
-    transport = RequestsHTTPTransport(url='http://localhost:8000/graphql', verify=True, retries=3)
-    client = Client(transport=transport, fetch_schema_from_transport=True)
-
-    mutation = gql("""
-        mutation {
-            updateLowStockProducts {
-                updatedProducts {
-                    name
-                    stock
-                }
-                message
+    graphql_url = "http://localhost:8000/graphql"
+    mutation = """
+    mutation {
+        updateLowStockProducts {
+            message
+            updatedProducts {
+                name
+                stock
             }
         }
-    """)
+    }
+    """
 
-    response = client.execute(mutation)
-    updated = response["updateLowStockProducts"]["updatedProducts"]
-    message = response["updateLowStockProducts"]["message"]
+    try:
+        response = requests.post(
+            graphql_url,
+            json={"query": mutation},
+            headers={"Content-Type": "application/json"},
+            timeout=10
+        )
+        response.raise_for_status()
+        data = response.json()
 
-    with open("/tmp/low_stock_updates_log.txt", "a") as log_file:
-        log_file.write(f"{datetime.now().strftime('%d/%m/%Y-%H:%M:%S')} - {message}\n")
-        for product in updated:
-            log_file.write(f"Updated {product['name']} to stock {product['stock']}\n")
+        updates = data["data"]["updateLowStockProducts"]
+        message = updates["message"]
+        updated_products = updates["updatedProducts"]
+
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with open("/tmp/low_stock_updates_log.txt", "a") as log_file:
+            log_file.write(f"[{timestamp}] {message}\n")
+            for product in updated_products:
+                log_file.write(f"- {product['name']}: {product['stock']} units\n")
+            log_file.write("\n")
+
+        print("Low stock update completed.")
+
+    except Exception as e:
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with open("/tmp/low_stock_updates_log.txt", "a") as log_file:
+            log_file.write(f"[{timestamp}] ERROR: {e}\n")
+        print(f"Error updating low-stock products: {e}")

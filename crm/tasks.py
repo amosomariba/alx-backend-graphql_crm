@@ -1,29 +1,35 @@
 from celery import shared_task
-from gql import gql, Client
-from gql.transport.requests import RequestsHTTPTransport
+import requests
 from datetime import datetime
 
 @shared_task
 def generate_crm_report():
-    transport = RequestsHTTPTransport(url='http://localhost:8000/graphql', verify=True, retries=3)
-    client = Client(transport=transport, fetch_schema_from_transport=True)
-
-    query = gql("""
+    graphql_url = "http://localhost:8000/graphql/"  # Change if needed
+    query = """
     query {
-        customers { id }
-        orders { id totalAmount }
+        totalCustomers
+        totalOrders
+        totalRevenue
     }
-    """)
-    response = client.execute(query)
+    """
 
-    total_customers = len(response["customers"])
-    total_orders = len(response["orders"])
-    total_revenue = sum(order["totalAmount"] for order in response["orders"])
+    response = requests.post(
+        graphql_url,
+        json={"query": query},
+        headers={"Content-Type": "application/json"}
+    )
 
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    report = f"{timestamp} - Report: {total_customers} customers, {total_orders} orders, {total_revenue} revenue"
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    log_file = "/tmp/crm_report_log.txt"
 
-    with open("/tmp/crm_report_log.txt", "a") as f:
-        f.write(report + "\n")
+    if response.status_code == 200:
+        data = response.json().get("data", {})
+        total_customers = data.get("totalCustomers", 0)
+        total_orders = data.get("totalOrders", 0)
+        total_revenue = data.get("totalRevenue", 0)
 
-    print("Weekly CRM Report Generated.")
+        with open(log_file, "a") as f:
+            f.write(f"[{now}] Report: {total_customers} customers, {total_orders} orders, ${total_revenue} revenue\n")
+    else:
+        with open(log_file, "a") as f:
+            f.write(f"[{now}] ERROR: Status {response.status_code} - {response.text}\n")
