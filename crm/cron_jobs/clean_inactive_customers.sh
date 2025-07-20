@@ -3,14 +3,14 @@
 # Get the absolute directory path of this script
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-# Set project root assuming script is in crm/cron_jobs/
-PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
+# Define current working directory (cwd)
+cwd="$(dirname "$(dirname "$SCRIPT_DIR")")"
 
-# Change to project directory
-cd "$PROJECT_ROOT" || exit
+# Change to project root
+cd "$cwd" || exit
 
-# Optional: activate virtual environment if required
-# source "$PROJECT_ROOT/venv/bin/activate"
+# Optional: activate virtual environment
+# source "$cwd/venv/bin/activate"
 
 # Run Django shell to clean inactive customers
 deleted_count=$(./manage.py shell <<EOF
@@ -26,7 +26,7 @@ print(count)
 EOF
 )
 
-# Check if deletion was successful
+# Log the result
 if [ -n "\$deleted_count" ]; then
     echo "\$(date '+%Y-%m-%d %H:%M:%S') - Deleted \$deleted_count inactive customers" >> /tmp/customer_cleanup_log.txt
 else
