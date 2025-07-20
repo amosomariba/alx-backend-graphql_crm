@@ -1,13 +1,19 @@
 #!/bin/bash
 
-# Activate virtual environment if needed
-# source /path/to/venv/bin/activate
+# Get the absolute directory path of this script
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-# Set the Django project directory
-cd /path/to/your/project/root  # e.g., /home/amos/DJANGO_PROJECTS/crm_project
+# Set project root assuming script is in crm/cron_jobs/
+PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 
-# Run the cleanup command using Django shell
-deleted_count=$(./manage.py shell << EOF
+# Change to project directory
+cd "$PROJECT_ROOT" || exit
+
+# Optional: activate virtual environment if required
+# source "$PROJECT_ROOT/venv/bin/activate"
+
+# Run Django shell to clean inactive customers
+deleted_count=$(./manage.py shell <<EOF
 from datetime import timedelta
 from django.utils import timezone
 from crm.models import Customer
@@ -20,5 +26,9 @@ print(count)
 EOF
 )
 
-# Log the result with timestamp
-echo "\$(date '+%Y-%m-%d %H:%M:%S') - Deleted \$deleted_count inactive customers" >> /tmp/customer_cleanup_log.txt
+# Check if deletion was successful
+if [ -n "\$deleted_count" ]; then
+    echo "\$(date '+%Y-%m-%d %H:%M:%S') - Deleted \$deleted_count inactive customers" >> /tmp/customer_cleanup_log.txt
+else
+    echo "\$(date '+%Y-%m-%d %H:%M:%S') - Cleanup failed or no customers deleted" >> /tmp/customer_cleanup_log.txt
+fi
