@@ -24,3 +24,29 @@ def log_crm_heartbeat():
 
     with log_path.open("a") as log:
         log.write(f"{timestamp} CRM is alive - {message}\n")
+
+
+def update_low_stock():
+    transport = RequestsHTTPTransport(url='http://localhost:8000/graphql', verify=True, retries=3)
+    client = Client(transport=transport, fetch_schema_from_transport=True)
+
+    mutation = gql("""
+        mutation {
+            updateLowStockProducts {
+                updatedProducts {
+                    name
+                    stock
+                }
+                message
+            }
+        }
+    """)
+
+    response = client.execute(mutation)
+    updated = response["updateLowStockProducts"]["updatedProducts"]
+    message = response["updateLowStockProducts"]["message"]
+
+    with open("/tmp/low_stock_updates_log.txt", "a") as log_file:
+        log_file.write(f"{datetime.now().strftime('%d/%m/%Y-%H:%M:%S')} - {message}\n")
+        for product in updated:
+            log_file.write(f"Updated {product['name']} to stock {product['stock']}\n")
