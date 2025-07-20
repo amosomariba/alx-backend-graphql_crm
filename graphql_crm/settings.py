@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     # Third Party
     "graphene_django",
     "django_filters",
-    'django_crontab'
+    'django_crontab',
 ]
 
 MIDDLEWARE = [
@@ -131,3 +131,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 CRONJOBS = [
     ('*/5 * * * *', 'crm.cron.log_crm_heartbeat'),  # every 5 minutes
 ]
+
+# CRONJOBS = [
+#     ('*/5 * * * *', 'crm.cron.log_crm_heartbeat'),
+# ]
